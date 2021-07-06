@@ -1,15 +1,25 @@
 ### build stage
-FROM rust as builder
+FROM rust:1 as builder
 ENV USER root
 ENV CI_PROJECT_NAME docker
-RUN apt-get update && apt-get install -y git cmake pkg-config libssl-dev git clang libclang-dev
-RUN rustup default nightly && rustup target add wasm32-unknown-unknown
+ARG RUST_TOOLCHAIN=nightly-2020-10-06
+ENV CARGO_TERM_COLOR=always
+#RUN apt-get update && apt-get install -y git cmake pkg-config libssl-dev git clang libclang-dev
+#RUN rustup default nightly && rustup target add wasm32-unknown-unknown
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        clang \
+        libclang-dev \
+        cmake \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN rustup default ${RUST_TOOLCHAIN} \
+    && rustup target add wasm32-unknown-unknown
 COPY . .
-RUN CI_PROJECT_NAME=docker sh scripts/init.sh
+#RUN CI_PROJECT_NAME=docker sh scripts/init.sh
 RUN cargo build --release
 
 ### package stage
-FROM debian:stretch-slim
+FROM debian:stable-slim
 # metadata
 ARG VCS_REF
 ARG BUILD_DATE
